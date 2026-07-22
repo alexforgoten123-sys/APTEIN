@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Control de Comisiones</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card-bg { background-color: #1e293b; border: 1px solid #334155; }
+        .accent-red { color: #ef4444; }
+        .bg-red-custom { background-color: #dc2626; }
+        .bg-red-custom:hover { background-color: #b91c1c; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Configuración inicial / Input Web App URL -->
+    <div id="setup-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+        <div class="card-bg p-8 rounded-xl max-w-lg w-full shadow-2xl border border-slate-700">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+                <h2 class="text-xl font-bold text-white">Conexión con Google Sheets</h2>
+            </div>
+            <p class="text-sm text-slate-400 mb-6">
+                Ingresa la URL de tu Aplicación Web de Google Apps Script para enlazar los datos en tiempo real de tu base de datos de comisiones.
+            </p>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-slate-400 font-semibold mb-2">URL de Apps Script Web App</label>
+                    <input type="text" id="script-url-input" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500 transition">
+                </div>
+                <button onclick="saveScriptUrl()" class="w-full bg-red-custom text-white font-semibold py-3 rounded-lg shadow transition duration-200">
+                    Conectar y Cargar Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header Principal -->
+    <header class="card-bg border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center space-x-4">
+            <div class="bg-red-custom text-white font-bold px-3 py-1.5 rounded text-sm tracking-widest shadow">APTEIN S.A.C.</div>
+            <h1 class="text-lg font-bold tracking-wide">CONTROL DE COMISIONES</h1>
+        </div>
+        
+        <!-- Panel de Control / Controles de Actualización y Filtros -->
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center space-x-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
+                <span class="text-slate-400">Actualizar:</span>
+                <select id="auto-refresh-select" onchange="toggleAutoRefresh()" class="bg-transparent text-white focus:outline-none cursor-pointer">
+                    <option value="0" class="bg-slate-900">Manual</option>
+                    <option value="10" class="bg-slate-900">Cada 10 seg</option>
+                    <option value="30" class="bg-slate-900">Cada 30 seg</option>
+                    <option value="60" class="bg-slate-900">Cada 1 min</option>
+                </select>
+            </div>
+            <button onclick="fetchData()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-2 transition">
+                <svg class="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                <span>Actualizar Ahora</span>
+            </button>
+            <button onclick="openConfig()" class="text-slate-400 hover:text-white p-1.5 rounded-lg border border-slate-800 hover:border-slate-700 transition" title="Cambiar URL">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Filtros Globales -->
+    <div class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex flex-wrap items-center gap-4 text-xs">
+        <span class="text-slate-400 font-semibold uppercase tracking-wider">Filtros Globales:</span>
+        <div class="flex items-center space-x-2">
+            <label class="text-slate-400">Mes:</label>
+            <select id="filter-mes" onchange="applyFilters()" class="bg-slate-800 border border-slate-700 text-white rounded px-2.5 py-1 focus:outline-none">
+                <option value="TODOS">TODOS</option>
+            </select>
+        </div>
+        <div class="flex items-center space-x-2">
+            <label class="text-slate-400">Agente:</label>
+            <select id="filter-agente" onchange="applyFilters()" class="bg-slate-800 border border-slate-700 text-white rounded px-2.5 py-1 focus:outline-none">
+                <option value="TODOS">TODOS</option>
+            </select>
+        </div>
+        <div class="flex items-center space-x-2">
+            <label class="text-slate-400">Cliente:</label>
+            <select id="filter-cliente" onchange="applyFilters()" class="bg-slate-800 border border-slate-700 text-white rounded px-2.5 py-1 focus:outline-none">
+                <option value="TODOS">TODOS</option>
+            </select>
+        </div>
+        <div class="flex items-center space-x-2">
+            <label class="text-slate-400">Moneda:</label>
+            <select id="filter-moneda" onchange="applyFilters()" class="bg-slate-800 border border-slate-700 text-white rounded px-2.5 py-1 focus:outline-none">
+                <option value="TODOS">TODOS</option>
+                <option value="USA">USA / USD</option>
+                <option value="PEN">PEN / SOLES</option>
+            </select>
+        </div>
+        <button onclick="resetFilters()" class="text-red-400 hover:text-red-300 underline ml-auto">Limpiar Filtros</button>
+    </div>
+
+    <!-- Contenido Principal / Dashboard -->
+    <main class="flex-1 p-6 space-y-6 overflow-y-auto">
+        <!-- Tarjetas de Resumen (KPIs) - USD y PEN -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div class="card-bg p-4 rounded-xl border-l-4 border-red-500 shadow">
+                <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Monto Total USD</p>
+                <p id="kpi-monto-usd" class="text-xl font-bold text-white mt-1">$0.00</p>
+            </div>
+            <div class="card-bg p-4 rounded-xl border-l-4 border-emerald-500 shadow">
+                <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Comisión Total USD</p>
+                <p id="kpi-comision-usd" class="text-xl font-bold text-emerald-400 mt-1">$0.00</p>
+            </div>
+            <div class="card-bg p-4 rounded-xl border-l-4 border-indigo-500 shadow">
+                <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Monto Total PEN (S/)</p>
+                <p id="kpi-monto-pen" class="text-xl font-bold text-indigo-300 mt-1">S/ 0.00</p>
+            </div>
+            <div class="card-bg p-4 rounded-xl border-l-4 border-teal-500 shadow">
+                <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Comisión Total PEN (S/)</p>
+                <p id="kpi-comision-pen" class="text-xl font-bold text-teal-400 mt-1">S/ 0.00</p>
+            </div>
+            <div class="card-bg p-4 rounded-xl border-l-4 border-blue-500 shadow">
+                <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">% Prom. Comisión</p>
+                <p id="kpi-prom-com" class="text-xl font-bold text-blue-400 mt-1">0.00%</p>
+            </div>
+            <div class="card-bg p-4 rounded-xl border-l-4 border-amber-500 shadow">
+                <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Total Registros</p>
+                <p id="kpi-registros" class="text-xl font-bold text-amber-400 mt-1">0</p>
+            </div>
+        </div>
+
+        <!-- Gráficas Principales -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card-bg p-5 rounded-xl shadow">
+                <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300 mb-4">Comisiones Generadas por Agente</h3>
+                <div class="h-72 relative">
+                    <canvas id="chartAgentes"></canvas>
+                </div>
+            </div>
+            <div class="card-bg p-5 rounded-xl shadow">
+                <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300 mb-4">Top Clientes por Monto</h3>
+                <div class="h-72 relative">
+                    <canvas id="chartClientes"></canvas>
+                </div>
+            </div>
+        </div>
+
+        
+        <!-- Sección de Cuadro de Comparación para Toma de Decisiones -->
+        <div class="card-bg p-5 rounded-xl shadow space-y-4">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Cuadro de Comparación por Agente (Mes a Mes)</h3>
+                    <p class="text-xs text-slate-400">Analiza el rendimiento y variación de comisiones entre dos periodos para la toma de decisiones.</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1 font-semibold">Seleccionar Agente</label>
+                    <select id="comp-agente" class="w-full bg-slate-900 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:outline-none">
+                        <!-- Opciones dinámicas -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1 font-semibold">Mes Base (Periodo 1)</label>
+                    <select id="comp-mes1" class="w-full bg-slate-900 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:outline-none">
+                        <!-- Opciones dinámicas -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1 font-semibold">Mes a Comparar (Periodo 2)</label>
+                    <select id="comp-mes2" class="w-full bg-slate-900 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:outline-none">
+                        <!-- Opciones dinámicas -->
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="runComparison()" class="flex-1 bg-red-custom hover:bg-red-700 text-white font-semibold py-2 px-3 rounded text-xs transition shadow">
+                        Comparar
+                    </button>
+                    <button onclick="resetComparison()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold py-2 px-3 rounded text-xs transition shadow" title="Limpiar comparación">
+                        Limpiar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resultado de la Comparación -->
+            <div id="comp-result" class="hidden mt-4 pt-4 border-t border-slate-800/80">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                        <span class="text-[11px] text-slate-400 uppercase tracking-wider">Agente Analizado</span>
+                        <p id="res-agente" class="text-sm font-bold text-white mt-1">-</p>
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                        <span id="label-res-mes1" class="text-[11px] text-slate-400 uppercase tracking-wider">Mes 1</span>
+                        <p id="res-comision1" class="text-sm font-bold text-emerald-400 mt-1">$0.00</p>
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                        <span id="label-res-mes2" class="text-[11px] text-slate-400 uppercase tracking-wider">Mes 2</span>
+                        <p id="res-comision2" class="text-sm font-bold text-emerald-400 mt-1">$0.00</p>
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                        <span class="text-[11px] text-slate-400 uppercase tracking-wider">Variación / Tendencia</span>
+                        <p id="res-variacion" class="text-sm font-bold mt-1">-</p>
+                    </div>
+                </div>
+            
+            <!-- Gráfico de Tendencia Anual (Enero a Diciembre) para el Agente Seleccionado -->
+            <div id="comp-chart-container" class="hidden mt-6 pt-4 border-t border-slate-800/80">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Tendencia Anual de Comisiones (Enero - Diciembre)</span>
+                    <span id="comp-chart-title-agente" class="text-xs text-red-400 font-semibold"></span>
+                </div>
+                <div class="h-60 relative">
+                    <canvas id="chartCompAnual"></canvas>
+                </div>
+            </div>
+
+        </div>
+        </div>
+
+
+        <!-- Tabla Detallada -->
+        <div class="card-bg rounded-xl shadow overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Detalle de Facturas y Comisiones</h3>
+                <span id="row-count" class="text-xs text-slate-400">Mostrando 0 registros</span>
+            </div>
+            <div class="overflow-x-auto max-h-96">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-900 sticky top-0 uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                        <tr>
+                            <th class="px-4 py-3">Factura</th>
+                            <th class="px-4 py-3">O/C</th>
+                            <th class="px-4 py-3">Mes</th>
+                            <th class="px-4 py-3">Cliente</th>
+                            <th class="px-4 py-3">Moneda</th>
+                            <th class="px-4 py-3 text-right">Monto</th>
+                            <th class="px-4 py-3 text-right">Comisión</th>
+                            <th class="px-4 py-3 text-right">%</th>
+                            <th class="px-4 py-3">Agente</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-slate-800/60">
+                        <!-- Inyección dinámica -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Script de lógica y conexión -->
+    <script>
+        let rawData = [];
+        let filteredData = [];
+        let chartAgentesInstance = null;
+        let chartClientesInstance = null;
+        let refreshInterval = null;
+
+        window.onload = function() {
+            const savedUrl = localStorage.getItem('appsScriptUrl');
+            if (savedUrl) {
+                document.getElementById('script-url-input').value = savedUrl;
+                document.getElementById('setup-modal').style.display = 'none';
+                fetchData();
+            }
+        };
+
+        function saveScriptUrl() {
+            const url = document.getElementById('script-url-input').value.trim();
+            if (!url) {
+                alert('Por favor ingresa una URL válida.');
+                return;
+            }
+            localStorage.setItem('appsScriptUrl', url);
+            document.getElementById('setup-modal').style.display = 'none';
+            fetchData();
+        }
+
+        function openConfig() {
+            document.getElementById('setup-modal').style.display = 'flex';
+        }
+
+        function toggleAutoRefresh() {
+            const seconds = parseInt(document.getElementById('auto-refresh-select').value);
+            if (refreshInterval) clearInterval(refreshInterval);
+            if (seconds > 0) {
+                refreshInterval = setInterval(fetchData, seconds * 1000);
+            }
+        }
+
+        function fetchData() {
+            const url = localStorage.getItem('appsScriptUrl');
+            if (!url) return;
+
+            // Indicador visual de carga rápido
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    processSheetData(data);
+                })
+                .catch(error => {
+                    console.error('Error al conectar con Apps Script:', error);
+                });
+        }
+
+        function processSheetData(rows) {
+            if (!rows || rows.length < 2) return;
+
+            // Identificar cabeceras en base a la captura (Factura, O/C, Mes, Cliente, Moneda, Monto, Comisión, %, Agente)
+            // Asumimos que la fila de cabecera contiene la palabra "FACTURA"
+            let headerRowIndex = 0;
+            for (let i = 0; i < Math.min(15, rows.length); i++) {
+                if (rows[i].some(cell => String(cell).toUpperCase().includes('FACTURA'))) {
+                    headerRowIndex = i;
+                    break;
+                }
+            }
+
+            const headers = rows[headerRowIndex].map(h => String(h).trim().toUpperCase());
+            
+            // Mapear índices
+            const idxFactura = headers.findIndex(h => h.includes('FACTURA'));
+            const idxOC = headers.findIndex(h => h.includes('O/C'));
+            const idxMes = headers.findIndex(h => h.includes('MES'));
+            const idxCliente = headers.findIndex(h => h.includes('CLIENTE'));
+            const idxMoneda = headers.findIndex(h => h.includes('MONEDA'));
+            const idxMonto = headers.findIndex(h => h.includes('MONTO'));
+            const idxComision = headers.findIndex(h => h.includes('COMISIÓN') || h.includes('COMISION'));
+            const idxPorc = headers.findIndex(h => h === '%' || h.includes('PORC'));
+            const idxAgente = headers.findIndex(h => h.includes('AGENTE'));
+
+            rawData = [];
+            for (let i = headerRowIndex + 1; i < rows.length; i++) {
+                const r = rows[i];
+                if (!r || r.length === 0) continue;
+                
+                const factura = r[idxFactura] !== undefined ? r[idxFactura] : '';
+                if (!factura || String(factura).trim() === '') continue; // Omitir filas vacías
+
+                rawData.push({
+                    factura: factura,
+                    oc: r[idxOC] !== undefined ? r[idxOC] : '',
+                    mes: r[idxMes] !== undefined ? String(r[idxMes]).trim() : '',
+                    cliente: r[idxCliente] !== undefined ? String(r[idxCliente]).trim() : '',
+                    moneda: r[idxMoneda] !== undefined ? String(r[idxMoneda]).trim() : '',
+                    monto: parseFloat(r[idxMonto]) || 0,
+                    comision: parseFloat(r[idxComision]) || 0,
+                    porc: (parseFloat(r[idxPorc]) || 0) * 100,
+                    agente: r[idxAgente] !== undefined ? String(r[idxAgente]).trim() : ''
+                });
+            }
+
+            populateDropdowns();
+            applyFilters();
+        }
+
+        function populateDropdowns() {
+            const meses = [...new Set(rawData.map(item => item.mes))].filter(Boolean).sort();
+            const agentes = [...new Set(rawData.map(item => item.agente))].filter(Boolean).sort();
+            const clientes = [...new Set(rawData.map(item => item.cliente))].filter(Boolean).sort();
+
+            updateSelectOptions('filter-mes', meses);
+            updateSelectOptions('filter-agente', agentes);
+            updateSelectOptions('filter-cliente', clientes);
+            populateComparisonDropdowns();
+        }
+
+        function updateSelectOptions(elementId, values) {
+            const select = document.getElementById(elementId);
+            const currentVal = select.value;
+            select.innerHTML = '<option value="TODOS">TODOS</option>';
+            values.forEach(val => {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = val;
+                select.appendChild(opt);
+            });
+            if (values.includes(currentVal)) {
+                select.value = currentVal;
+            }
+        }
+
+        function applyFilters() {
+            const fMes = document.getElementById('filter-mes').value;
+            const fAgente = document.getElementById('filter-agente').value;
+            const fCliente = document.getElementById('filter-cliente').value;
+
+            const fMoneda = document.getElementById('filter-moneda').value;
+
+            filteredData = rawData.filter(item => {
+                if (fMes !== 'TODOS' && item.mes !== fMes) return false;
+                if (fAgente !== 'TODOS' && item.agente !== fAgente) return false;
+                if (fCliente !== 'TODOS' && item.cliente !== fCliente) return false;
+                if (fMoneda !== 'TODOS') {
+                    const m = String(item.moneda).toUpperCase();
+                    if (fMoneda === 'PEN' && !(m.includes('PEN') || m.includes('SOLES') || m.includes('S/'))) return false;
+                    if (fMoneda === 'USA' && (m.includes('PEN') || m.includes('SOLES') || m.includes('S/'))) return false;
+                }
+                return true;
+            });
+
+            updateKPIs();
+            updateCharts();
+            updateTable();
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-mes').value = 'TODOS';
+            document.getElementById('filter-agente').value = 'TODOS';
+            document.getElementById('filter-cliente').value = 'TODOS';
+            document.getElementById('filter-moneda').value = 'TODOS';
+            applyFilters();
+        }
+
+        function updateKPIs() {
+            let totalMontoUSD = 0;
+            let totalComisionUSD = 0;
+            let totalMontoPEN = 0;
+            let totalComisionPEN = 0;
+            let sumPorc = 0;
+
+            filteredData.forEach(item => {
+                const moneda = String(item.moneda).toUpperCase().trim();
+                if (moneda.includes('PEN') || moneda.includes('SOLES') || moneda.includes('S/')) {
+                    totalMontoPEN += item.monto;
+                    totalComisionPEN += item.comision;
+                } else {
+                    // Por defecto USD u otras divisas mapeadas a USD
+                    totalMontoUSD += item.monto;
+                    totalComisionUSD += item.comision;
+                }
+                sumPorc += item.porc;
+            });
+
+            const promPorc = filteredData.length > 0 ? (sumPorc / filteredData.length) : 0;
+
+            document.getElementById('kpi-monto-usd').textContent = '$' + totalMontoUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('kpi-comision-usd').textContent = '$' + totalComisionUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('kpi-monto-pen').textContent = 'S/ ' + totalMontoPEN.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('kpi-comision-pen').textContent = 'S/ ' + totalComisionPEN.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('kpi-prom-com').textContent = promPorc.toFixed(2) + '%';
+            document.getElementById('kpi-registros').textContent = filteredData.length;
+        }
+
+        function updateCharts() {
+            // Agrupar por Agente separando USD y PEN
+            const agentesMapUSD = {};
+            const agentesMapPEN = {};
+            filteredData.forEach(item => {
+                const ag = item.agente || 'SIN AGENTE';
+                const moneda = String(item.moneda).toUpperCase().trim();
+                if (moneda.includes('PEN') || moneda.includes('SOLES') || moneda.includes('S/')) {
+                    agentesMapPEN[ag] = (agentesMapPEN[ag] || 0) + item.comision;
+                } else {
+                    agentesMapUSD[ag] = (agentesMapUSD[ag] || 0) + item.comision;
+                }
+            });
+
+            const agentesLabels = [...new Set([...Object.keys(agentesMapUSD), ...Object.keys(agentesMapPEN)])].sort();
+            const agentesValuesUSD = agentesLabels.map(ag => agentesMapUSD[ag] || 0);
+            const agentesValuesPEN = agentesLabels.map(ag => agentesMapPEN[ag] || 0);
+
+            // Agrupar por Cliente
+            const clientesMap = {};
+            filteredData.forEach(item => {
+                const cl = item.cliente || 'SIN CLIENTE';
+                clientesMap[cl] = (clientesMap[cl] || 0) + item.monto;
+            });
+
+            // Top 5 clientes ordenados
+            const sortedClientes = Object.entries(clientesMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const clientesLabels = sortedClientes.map(e => e[0]);
+            const clientesValues = sortedClientes.map(e => e[1]);
+
+            // Renderizar Gráfica Agentes con colores distintos para cada barra
+            const palette = ['#dc2626', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#6366f1', '#84cc16', '#f43f5e'];
+            const bgColors = agentesLabels.map((_, index) => palette[index % palette.length]);
+
+            const ctxAgentes = document.getElementById('chartAgentes').getContext('2d');
+            if (chartAgentesInstance) chartAgentesInstance.destroy();
+            chartAgentesInstance = new Chart(ctxAgentes, {
+                type: 'bar',
+                data: {
+                    labels: agentesLabels,
+                    datasets: [
+                        {
+                            label: 'Comisión USD ($)',
+                            data: agentesValuesUSD,
+                            backgroundColor: '#ef4444',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Comisión PEN (S/)',
+                            data: agentesValuesPEN,
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: true, labels: { color: '#94a3b8', font: { size: 10 } } } 
+                    },
+                    scales: {
+                        x: { 
+                            grid: { color: '#334155' }, 
+                            ticks: { 
+                                color: function(context) {
+                                    const palette = ['#f87171', '#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f472b6', '#2dd4bf', '#818cf8', '#acc326', '#fb7185'];
+                                    return palette[context.index % palette.length];
+                                },
+                                font: { size: 10, weight: 'bold' } 
+                            } 
+                        },
+                        y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            // Renderizar Gráfica Clientes
+            const ctxClientes = document.getElementById('chartClientes').getContext('2d');
+            if (chartClientesInstance) chartClientesInstance.destroy();
+            chartClientesInstance = new Chart(ctxClientes, {
+                type: 'doughnut',
+                data: {
+                    labels: clientesLabels,
+                    datasets: [{
+                        data: clientesValues,
+                        backgroundColor: ['#dc2626', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            filteredData.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-800/40 transition';
+                tr.innerHTML = `
+                    <td class="px-4 py-2.5 font-medium text-white">${item.factura}</td>
+                    <td class="px-4 py-2.5 text-slate-400">${item.oc}</td>
+                    <td class="px-4 py-2.5">${item.mes}</td>
+                    <td class="px-4 py-2.5 text-white font-medium">${item.cliente}</td>
+                    <td class="px-4 py-2.5"><span class="bg-slate-800 px-2 py-0.5 rounded text-[10px] text-slate-300">${item.moneda}</span></td>
+                    <td class="px-4 py-2.5 text-right font-semibold">${item.monto.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td class="px-4 py-2.5 text-right font-semibold text-emerald-400">${item.comision.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td class="px-4 py-2.5 text-right text-slate-400">${item.porc.toFixed(2)}%</td>
+                    <td class="px-4 py-2.5 text-slate-300">${item.agente}</td>
+                `;
+                tbody.appendChild(rowsToFragment(tr));
+            });
+
+            document.getElementById('row-count').textContent = `Mostrando ${filteredData.length} registros`;
+        }
+
+        function rowsToFragment(el) {
+            return el;
+        }
+
+
+        function populateComparisonDropdowns() {
+            const agentes = [...new Set(rawData.map(item => item.agente))].filter(Boolean).sort();
+            const meses = [...new Set(rawData.map(item => item.mes))].filter(Boolean).sort();
+
+            updateSelectOptions('comp-agente', agentes);
+            updateSelectOptions('comp-mes1', meses);
+            updateSelectOptions('comp-mes2', meses);
+
+            // Seleccionar por defecto diferentes si hay al menos 2 meses
+            const m1Select = document.getElementById('comp-mes1');
+            const m2Select = document.getElementById('comp-mes2');
+            if (meses.length >= 2) {
+                m1Select.value = meses[0];
+                m2Select.value = meses[1];
+            } else if (meses.length === 1) {
+                m1Select.value = meses[0];
+                m2Select.value = meses[0];
+            }
+        }
+
+        
+        let chartCompAnualInstance = null;
+
+        
+        function resetComparison() {
+            populateComparisonDropdowns();
+            document.getElementById('comp-result').classList.add('hidden');
+            document.getElementById('comp-chart-container').classList.add('hidden');
+            if (chartCompAnualInstance) {
+                chartCompAnualInstance.destroy();
+                chartCompAnualInstance = null;
+            }
+        }
+
+        function runComparison() {
+            const agente = document.getElementById('comp-agente').value;
+            const mes1 = document.getElementById('comp-mes1').value;
+            const mes2 = document.getElementById('comp-mes2').value;
+
+            if (!agente || !mes1 || !mes2) {
+                alert('Por favor selecciona un agente y ambos meses a comparar.');
+                return;
+            }
+
+            // Calcular comisiones para mes 1
+            const com1 = rawData
+                .filter(item => item.agente === agente && item.mes === mes1)
+                .reduce((acc, curr) => acc + curr.comision, 0);
+
+            // Calcular comisiones para mes 2
+            const com2 = rawData
+                .filter(item => item.agente === agente && item.mes === mes2)
+                .reduce((acc, curr) => acc + curr.comision, 0);
+
+            const diff = com2 - com1;
+            const porcChange = com1 > 0 ? (diff / com1) * 100 : (com2 > 0 ? 100 : 0);
+
+            // Mostrar resultados
+            document.getElementById('res-agente').textContent = agente;
+            document.getElementById('label-res-mes1').textContent = `Comisión ${mes1}`;
+            document.getElementById('label-res-mes2').textContent = `Comisión ${mes2}`;
+            document.getElementById('res-comision1').textContent = '$' + com1.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('res-comision2').textContent = '$' + com2.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            const varElement = document.getElementById('res-variacion');
+            if (diff > 0) {
+                varElement.innerHTML = `<span class="text-emerald-400">+$${diff.toLocaleString('en-US', {minimumFractionDigits: 2})} (+${porcChange.toFixed(1)}%) 📈 Subió</span>`;
+            } else if (diff < 0) {
+                varElement.innerHTML = `<span class="text-red-400">-$${Math.abs(diff).toLocaleString('en-US', {minimumFractionDigits: 2})} (${porcChange.toFixed(1)}%) 📉 Bajó</span>`;
+            } else {
+                varElement.innerHTML = `<span class="text-slate-400">$0.00 (0.0%) ➖ Igual</span>`;
+            }
+
+            document.getElementById('comp-result').classList.remove('hidden');
+            document.getElementById('comp-chart-container').classList.remove('hidden');
+            document.getElementById('comp-chart-title-agente').textContent = `Agente: ${agente}`;
+
+            // Renderizar Gráfica Anual (Enero - Diciembre o todos los meses disponibles)
+            renderAnualChart(agente);
+        }
+
+        function renderAnualChart(agente) {
+            // Lista estándar de meses o extraer todos los meses ordenados cronológicamente si existen en el set
+            const mesesEstandar = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+            
+            // Recoger todos los meses presentes en rawData
+            const mesesDisponiblesUnicos = [...new Set(rawData.map(item => String(item.mes).toUpperCase().trim()))];
+            
+            // Ordenar según mesesEstandar si coinciden, sino orden alfabético/original
+            const mesesOrdenados = mesesEstandar.filter(m => mesesDisponiblesUnicos.includes(m));
+            // Si hay otros meses no contemplados en la lista estándar, agregarlos
+            mesesDisponiblesUnicos.forEach(m => {
+                if (!mesesOrdenados.includes(m)) mesesOrdenados.push(m);
+            });
+
+            // Si no hay meses estándar detectados, tomar todos los únicos ordenados
+            const finalMeses = mesesOrdenados.length > 0 ? mesesOrdenados : mesesDisponiblesUnicos.sort();
+
+            const comisionesUSDPorMes = finalMeses.map(mes => {
+                return rawData
+                    .filter(item => item.agente === agente && String(item.mes).toUpperCase().trim() === mes && !(String(item.moneda).toUpperCase().includes('PEN') || String(item.moneda).toUpperCase().includes('SOLES') || String(item.moneda).toUpperCase().includes('S/')))
+                    .reduce((acc, curr) => acc + curr.comision, 0);
+            });
+
+            const comisionesPENPorMes = finalMeses.map(mes => {
+                return rawData
+                    .filter(item => item.agente === agente && String(item.mes).toUpperCase().trim() === mes && (String(item.moneda).toUpperCase().includes('PEN') || String(item.moneda).toUpperCase().includes('SOLES') || String(item.moneda).toUpperCase().includes('S/')))
+                    .reduce((acc, curr) => acc + curr.comision, 0);
+            });
+
+            const ctx = document.getElementById('chartCompAnual').getContext('2d');
+            if (chartCompAnualInstance) chartCompAnualInstance.destroy();
+
+            chartCompAnualInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: finalMeses,
+                    datasets: [
+                        {
+                            label: `Comisión USD ($) - ${agente}`,
+                            data: comisionesUSDPorMes,
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.10)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: '#ef4444',
+                            pointRadius: 4
+                        },
+                        {
+                            label: `Comisión PEN (S/) - ${agente}`,
+                            data: comisionesPENPorMes,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.10)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: '#3b82f6',
+                            pointRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' Comisión: $' + context.raw.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            grid: { color: '#334155' }, 
+                            ticks: { 
+                                color: function(context) {
+                                    const palette = ['#f87171', '#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f472b6', '#2dd4bf', '#818cf8', '#acc326', '#fb7185'];
+                                    return palette[context.index % palette.length];
+                                },
+                                font: { size: 10, weight: 'bold' } 
+                            } 
+                        },
+                        y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
+    </script>
+</body>
+</html>
