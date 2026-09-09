@@ -679,7 +679,6 @@
             });
         }
 
-        // FUNCION NUEVA PARA EXPORTAR LA TABLA A EXCEL (CON FORMATO Y TOTALES)
         function exportarExcel() {
             if (filteredData.length === 0) {
                 alert('No hay datos para exportar.');
@@ -689,27 +688,22 @@
             let totalMonto = 0;
             let totalComision = 0;
 
-            // Obtener los valores actuales de los filtros para el título
             const fAgente = document.getElementById('filter-agente').value;
             const fMes = document.getElementById('filter-mes').value;
             const tituloAgente = fAgente === 'TODOS' ? 'TODOS LOS AGENTES' : fAgente;
-            
-            // MODIFICACIÓN APLICADA: Si es un mes específico, agregamos "AL 07 DE "
             const tituloMes = fMes === 'TODOS' ? 'TODOS LOS MESES' : `AL 07 DE ${fMes}`;
 
             let tabla = `<html xmlns:x="urn:schemas-microsoft-com:office:excel">
                 <head><meta charset="utf-8"></head>
                 <body>
-                    <table border="1" style="font-family: Arial, sans-serif; font-size: 13px; border-collapse: collapse;">
+                    <table border="1" style="font-family: Arial, sans-serif; font-size: 10pt; border-collapse: collapse;">
                         <thead>
-                            <!-- NUEVA FILA DE TÍTULO DORADO -->
                             <tr>
-                                <th colspan="10" style="background-color: #0f172a; color: #FFD700; font-size: 18px; font-weight: bold; text-align: center; padding: 15px; border-bottom: 2px solid #FFD700;">
+                                <th colspan="10" style="background-color: #0f172a; color: #FFD700; font-size: 14pt; font-weight: bold; text-align: center; padding: 15px; border-bottom: 2px solid #FFD700;">
                                     AGENTE: ${tituloAgente} | MES: ${tituloMes}
                                 </th>
                             </tr>
-                            <!-- ENCABEZADOS DE COLUMNA -->
-                            <tr style="background-color: #0f172a; color: #ffffff; text-align: left;">
+                            <tr style="background-color: #0f172a; color: #ffffff; text-align: left; font-size: 14pt;">
                                 <th style="padding: 6px;">Factura</th>
                                 <th style="padding: 6px; text-align: left;">O/C</th>
                                 <th style="padding: 6px;">Mes</th>
@@ -728,7 +722,6 @@
                 totalMonto += item.monto;
                 totalComision += item.comision;
 
-                // Formatear factor a 2 decimales si es un número válido
                 let factorFormateado = item.factor;
                 if (factorFormateado !== '' && !isNaN(factorFormateado)) {
                     factorFormateado = parseFloat(factorFormateado).toFixed(2);
@@ -737,24 +730,20 @@
                 tabla += `
                     <tr>
                         <td style="padding: 5px;">${item.factura}</td>
-                        <!-- AÑADIDO: text-align left y mso-number-format para forzar texto en la O/C -->
                         <td style="padding: 5px; text-align: left; mso-number-format:'\\@';">${item.oc}</td>
                         <td style="padding: 5px;">${item.mes}</td>
                         <td style="padding: 5px;">${item.cliente}</td>
                         <td style="padding: 5px;">${item.moneda}</td>
-                        <!-- AÑADIDO: mso-number-format para formato de miles y decimales -->
                         <td style="padding: 5px; text-align: right; mso-number-format:'\\#\\,\\#\\#0\\.00';">${item.monto.toFixed(2)}</td>
                         <td style="padding: 5px; text-align: right; color: #10b981; font-weight: bold; mso-number-format:'\\#\\,\\#\\#0\\.00';">${item.comision.toFixed(2)}</td>
                         <td style="padding: 5px; text-align: right;">${item.porc.toFixed(2)}%</td>
                         <td style="padding: 5px;">${item.agente}</td>
-                        <!-- AÑADIDO: mso-number-format y toFixed para la columna Factor -->
                         <td style="padding: 5px; text-align: center; mso-number-format:'0\\.00';">${factorFormateado}</td>
                     </tr>`;
             });
 
-            // Agregar fila final de totales
             tabla += `
-                        <tr style="background-color: #e2e8f0; font-weight: bold; font-size: 14px;">
+                        <tr style="background-color: #e2e8f0; font-weight: bold; font-size: 10pt;">
                             <td colspan="5" style="text-align: right; padding: 6px;">TOTAL SUMATORIA:</td>
                             <td style="text-align: right; padding: 6px; mso-number-format:'\\#\\,\\#\\#0\\.00';">${totalMonto.toFixed(2)}</td>
                             <td style="text-align: right; color: #10b981; padding: 6px; mso-number-format:'\\#\\,\\#\\#0\\.00';">${totalComision.toFixed(2)}</td>
@@ -764,7 +753,6 @@
                 </table>
                 </body></html>`;
 
-            // Crear el archivo con formato Excel Web
             const blob = new Blob([tabla], { type: 'application/vnd.ms-excel' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
