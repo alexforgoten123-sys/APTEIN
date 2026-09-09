@@ -689,11 +689,24 @@
             let totalMonto = 0;
             let totalComision = 0;
 
+            // Obtener los valores actuales de los filtros para el título
+            const fAgente = document.getElementById('filter-agente').value;
+            const fMes = document.getElementById('filter-mes').value;
+            const tituloAgente = fAgente === 'TODOS' ? 'TODOS LOS AGENTES' : fAgente;
+            const tituloMes = fMes === 'TODOS' ? 'TODOS LOS MESES' : fMes;
+
             let tabla = `<html xmlns:x="urn:schemas-microsoft-com:office:excel">
                 <head><meta charset="utf-8"></head>
                 <body>
                     <table border="1" style="font-family: Arial, sans-serif; font-size: 13px; border-collapse: collapse;">
                         <thead>
+                            <!-- NUEVA FILA DE TÍTULO DORADO -->
+                            <tr>
+                                <th colspan="10" style="background-color: #0f172a; color: #FFD700; font-size: 18px; font-weight: bold; text-align: center; padding: 15px; border-bottom: 2px solid #FFD700;">
+                                    AGENTE: ${tituloAgente} | MES: ${tituloMes}
+                                </th>
+                            </tr>
+                            <!-- ENCABEZADOS DE COLUMNA -->
                             <tr style="background-color: #0f172a; color: #ffffff; text-align: left;">
                                 <th style="padding: 6px;">Factura</th>
                                 <th style="padding: 6px;">O/C</th>
