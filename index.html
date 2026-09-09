@@ -238,6 +238,7 @@
                             <th class="px-4 py-3 text-right">Comisión</th>
                             <th class="px-4 py-3 text-right">%</th>
                             <th class="px-4 py-3">Agente</th>
+                            <th class="px-4 py-3 text-center">Factor</th>
                         </tr>
                     </thead>
                     <tbody id="table-body" class="divide-y divide-slate-800/60">
@@ -328,6 +329,7 @@
             const idxComision = headers.findIndex(h => h.includes('COMISIÓN') || h.includes('COMISION'));
             const idxPorc = headers.findIndex(h => h === '%' || h.includes('PORC'));
             const idxAgente = headers.findIndex(h => h.includes('AGENTE'));
+            const idxFactor = headers.findIndex(h => h.includes('FACTOR'));
 
             rawData = [];
             for (let i = headerRowIndex + 1; i < rows.length; i++) {
@@ -346,7 +348,8 @@
                     monto: parseFloat(r[idxMonto]) || 0,
                     comision: parseFloat(r[idxComision]) || 0,
                     porc: (parseFloat(r[idxPorc]) || 0) * 100,
-                    agente: r[idxAgente] !== undefined ? String(r[idxAgente]).trim() : ''
+                    agente: r[idxAgente] !== undefined ? String(r[idxAgente]).trim() : '',
+                    factor: r[idxFactor] !== undefined ? String(r[idxFactor]).trim() : ''
                 });
             }
 
@@ -559,6 +562,7 @@
                     <td class="px-4 py-2.5 text-right font-semibold text-emerald-400">${item.comision.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                     <td class="px-4 py-2.5 text-right text-slate-400">${item.porc.toFixed(2)}%</td>
                     <td class="px-4 py-2.5 text-slate-300">${item.agente}</td>
+                    <td class="px-4 py-2.5 text-center font-semibold text-amber-400">${item.factor}</td>
                 `;
                 tbody.appendChild(rowsToFragment(tr));
             });
