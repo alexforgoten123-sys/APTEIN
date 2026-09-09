@@ -715,11 +715,11 @@
                                 <th style="padding: 6px;">Mes</th>
                                 <th style="padding: 6px;">Cliente</th>
                                 <th style="padding: 6px;">Moneda</th>
-                                <th style="padding: 6px;">Monto</th>
-                                <th style="padding: 6px;">Comisión</th>
-                                <th style="padding: 6px;">%</th>
+                                <th style="padding: 6px; text-align: right;">Monto</th>
+                                <th style="padding: 6px; text-align: right;">Comisión</th>
+                                <th style="padding: 6px; text-align: right;">%</th>
                                 <th style="padding: 6px;">Agente</th>
-                                <th style="padding: 6px;">Factor</th>
+                                <th style="padding: 6px; text-align: center;">Factor</th>
                             </tr>
                         </thead>
                         <tbody>`;
@@ -727,6 +727,13 @@
             filteredData.forEach(item => {
                 totalMonto += item.monto;
                 totalComision += item.comision;
+
+                // Formatear factor a 2 decimales si es un número válido
+                let factorFormateado = item.factor;
+                if (factorFormateado !== '' && !isNaN(factorFormateado)) {
+                    factorFormateado = parseFloat(factorFormateado).toFixed(2);
+                }
+
                 tabla += `
                     <tr>
                         <td style="padding: 5px;">${item.factura}</td>
@@ -735,11 +742,13 @@
                         <td style="padding: 5px;">${item.mes}</td>
                         <td style="padding: 5px;">${item.cliente}</td>
                         <td style="padding: 5px;">${item.moneda}</td>
-                        <td style="padding: 5px; text-align: right;">${item.monto.toFixed(2)}</td>
-                        <td style="padding: 5px; text-align: right; color: #10b981; font-weight: bold;">${item.comision.toFixed(2)}</td>
+                        <!-- AÑADIDO: mso-number-format para formato de miles y decimales -->
+                        <td style="padding: 5px; text-align: right; mso-number-format:'\\#\\,\\#\\#0\\.00';">${item.monto.toFixed(2)}</td>
+                        <td style="padding: 5px; text-align: right; color: #10b981; font-weight: bold; mso-number-format:'\\#\\,\\#\\#0\\.00';">${item.comision.toFixed(2)}</td>
                         <td style="padding: 5px; text-align: right;">${item.porc.toFixed(2)}%</td>
                         <td style="padding: 5px;">${item.agente}</td>
-                        <td style="padding: 5px; text-align: center;">${item.factor}</td>
+                        <!-- AÑADIDO: mso-number-format y toFixed para la columna Factor -->
+                        <td style="padding: 5px; text-align: center; mso-number-format:'0\\.00';">${factorFormateado}</td>
                     </tr>`;
             });
 
@@ -747,8 +756,8 @@
             tabla += `
                         <tr style="background-color: #e2e8f0; font-weight: bold; font-size: 14px;">
                             <td colspan="5" style="text-align: right; padding: 6px;">TOTAL SUMATORIA:</td>
-                            <td style="text-align: right; padding: 6px;">${totalMonto.toFixed(2)}</td>
-                            <td style="text-align: right; color: #10b981; padding: 6px;">${totalComision.toFixed(2)}</td>
+                            <td style="text-align: right; padding: 6px; mso-number-format:'\\#\\,\\#\\#0\\.00';">${totalMonto.toFixed(2)}</td>
+                            <td style="text-align: right; color: #10b981; padding: 6px; mso-number-format:'\\#\\,\\#\\#0\\.00';">${totalComision.toFixed(2)}</td>
                             <td colspan="3"></td>
                         </tr>
                     </tbody>
