@@ -693,7 +693,9 @@
             const fAgente = document.getElementById('filter-agente').value;
             const fMes = document.getElementById('filter-mes').value;
             const tituloAgente = fAgente === 'TODOS' ? 'TODOS LOS AGENTES' : fAgente;
-            const tituloMes = fMes === 'TODOS' ? 'TODOS LOS MESES' : fMes;
+            
+            // MODIFICACIÓN APLICADA: Si es un mes específico, agregamos "AL 07 DE "
+            const tituloMes = fMes === 'TODOS' ? 'TODOS LOS MESES' : `AL 07 DE ${fMes}`;
 
             let tabla = `<html xmlns:x="urn:schemas-microsoft-com:office:excel">
                 <head><meta charset="utf-8"></head>
