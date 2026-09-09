@@ -709,7 +709,7 @@
                             <!-- ENCABEZADOS DE COLUMNA -->
                             <tr style="background-color: #0f172a; color: #ffffff; text-align: left;">
                                 <th style="padding: 6px;">Factura</th>
-                                <th style="padding: 6px;">O/C</th>
+                                <th style="padding: 6px; text-align: left;">O/C</th>
                                 <th style="padding: 6px;">Mes</th>
                                 <th style="padding: 6px;">Cliente</th>
                                 <th style="padding: 6px;">Moneda</th>
@@ -728,7 +728,8 @@
                 tabla += `
                     <tr>
                         <td style="padding: 5px;">${item.factura}</td>
-                        <td style="padding: 5px;">${item.oc}</td>
+                        <!-- AÑADIDO: text-align left y mso-number-format para forzar texto en la O/C -->
+                        <td style="padding: 5px; text-align: left; mso-number-format:'\\@';">${item.oc}</td>
                         <td style="padding: 5px;">${item.mes}</td>
                         <td style="padding: 5px;">${item.cliente}</td>
                         <td style="padding: 5px;">${item.moneda}</td>
